@@ -53,8 +53,7 @@ __global__ void tiled_image_process(int mask_nrows, int mask_ncols, int img_rows
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3] = img[(pix_in_y*img_cols + pix_in_x)*3]; // B
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3 + 1] = img[(pix_in_y*img_cols + pix_in_x)*3 + 1]; // G
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3 + 2] = img[(pix_in_y*img_cols + pix_in_x)*3 + 2]; // R
-    }
-    if (pix_in_x < 0 || pix_in_x >= img_cols || pix_in_y < 0 || pix_in_y >= img_rows) {
+    } else {
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3] = 0;
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3 + 1] = 0;
         pixel_block[(threadIdx.y*blockDim.x + threadIdx.x)*3 + 2] = 0;
