@@ -1,4 +1,4 @@
 # cuda-image-processing
-This is my attempt to learn more about CUDA and GPUs in a fun way. In my first attempt, the kernel to apply the convolution mask used exclusively global memory. I then decided to attempt a shared memory implementation that tiles the input image, accounting for any halo rows required for the convolution.
+This is my attempt to learn more about CUDA and GPUs in a fun way. On my first try, the kernel to apply the convolution mask used exclusively global memory. I then decided to attempt a shared memory implementation that tiles the input image, accounting for any halo rows required for the convolution inside of each block.
 
 I avoided researching any tiling solutions to this task for the sake of problem solving, so there is likely a more efficient solution than my approach. While I do decrease the global memory access to compute ratio substantially, I rarely see better performance over the global memory approach. I think this is likely due to coalesced memory accesses in the global memory implementation, which are permitted because neighbouring threads access contiguous locations in memory while performing the convolution.
