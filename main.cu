@@ -33,11 +33,30 @@ __global__ void tiled_image_process(int mask_nrows, int mask_ncols, int img_rows
     /**
      * Tiling strategy:
      * 
-     * 1. Each thread also maps to a specific input pixel (or out of bounds), which it must bring into shared memory
-     * 2. Each thread maps to a specific output pixel whose final value it computes, which is mask_width/2 greater than the input
-     *    pixel (arbitrary, but made for convenient indexing)
-     * 3. Threads with indexes lower than mask dimensions bring the mask into shared memory as well
-     * 4. Then, compute convolution using pixels and mask in shared memory
+     * 1. Each thread maps to a specific output pixel, and is responsible for computing its final value in the resultant image.
+     *    These x/y indexes were chosen such that (using (row, col) notation) in block (0,0), thread (0,0) corresponds to output pixel
+     *    (0,0), thread (0,1) corresponds to (0,1) etc. Then, in block (0,1), thread (0,0) corresponds to output pixel (0, tile_cols),
+     *    thread (0,1) to (0, tile_cols + 1), etc., where tile_cols is the number of columns in a tile (a tile consists of
+     *    only valid output pixels and is therefore equal to the number of columns in a block excluding halos).
+     *
+     * 2. Each thread also maps to a specific input pixel (or out of bounds), which it responsible for bringing into shared memory.
+     *    This will be either a halo pixel or one that we want to apply the convolution mask to. If a thread gets an out of
+     *    bounds pixel, it sets its corresponding entry in the shared memory matrix to 0 so that the convolution is not impacted.
+     *    The input x/y indexes are mask_width/2 less than those of the thread's output pixel, which ensures that the halo rows are
+     *    accounted for in the block's shared memory, and that adjacent tiles have overlapping halo regions (which is necessary if
+     *    the valid pixels in adjacent tiles map to adjacent output pixels in the resultant image).
+     *    
+     *    NOTE: This mapping of threads to input/output pixels is not special. I chose it because it makes for easy mapping
+     *    of threads to output pixels, as thread (0,0) in a given block corresponds to the top left pixel in its associated tile.
+     *    A potentially better way to understand this mapping is: input pixel = threadIdx + blockIdx*tile - half_mask, and output pixels
+     *    are half_mask greater, indicating that the input pixels are fixed to account for tile/halo pixels, and the threads essentially
+     *    map down and rightwards to output pixels inside the tile such that thread (0,0) is responsible for the top left pixel in its tile.
+     *
+     * 3. Threads with indexes lower than mask dimensions are responsible for bringing their associated positions in the convolution mask
+     *    into shared memory as well.
+     *
+     * 4. Lastly, each thread computes the convolution for its assigned output pixel using the RGB values of its neighbouring pixels
+     *    (which are stored in shared memory).
     */
     
     // pixel in output image that this thread corresponds to
